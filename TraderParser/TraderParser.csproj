@@ -61,6 +61,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DataStructure.cs" />
+    <Compile Include="ItemsStructure.cs" />
     <Compile Include="Proxy.cs" />
     <Compile Include="TradeDetails.cs" />
     <Page Include="MainWindow.xaml">

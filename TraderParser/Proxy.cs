@@ -29,17 +29,6 @@ namespace TraderParser
             getProxyThread.Start();
             
         }
-        /*public string GetProxyIP()
-        {
-            
-            getProxyURL = "https://spinproxies.com/api/v1/proxyrotate?country_code=US&key=" + API_Key;
-            proxyWebClient = new WebClient();
-            string downString = proxyWebClient.DownloadString(getProxyURL);
-            json = JObject.Parse(downString);
-            IP_String = json["data"]["proxy"]["ip"] + ":" + json["data"]["proxy"]["port"];
-            proxyList.Add(IP_String);
-            return IP_String;
-        }*/
         Stopwatch sw = new Stopwatch();
         private void GetProxyListFromFile()
         {
@@ -53,6 +42,7 @@ namespace TraderParser
 			{
                 proxyLines.Add(line);
             }
+            file.Dispose(); // hmm?
 			Parallel.For(0, proxyLines.Count, index =>
             {
                 try
@@ -97,17 +87,18 @@ namespace TraderParser
                         }
                         else
                         {
-                            Console.WriteLine("failed in task");
+                            Console.WriteLine("[IF Failed][Proxy.cs][GetProxyListFromFile]:: downloadString is null");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("timed out");
+                        Console.WriteLine("[IF Failed][Proxy.cs][GetProxyListFromFile]:: Page took too long to load");
                     }
 
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine("[EXCEPTION][Proxy.cs][GetProxyListFromFile]:: " + ex.Message);
                     //Handle exceptions
                 }
             });

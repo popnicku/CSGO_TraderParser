@@ -14,22 +14,7 @@ using System.Windows.Media;
 
 namespace TraderParser
 {
-    public class ItemsStructure
-    {
-        public string ItemName;
-        public string ItemLink;
-        public float ItemPrice;
-    };
-    //List<ItemsStructure> Items;
-    public class DataStructure
-    {
-        public string SellerName;
-        public string Tradelink;
-        public List<ItemsStructure> LeftItems;
-        public List<ItemsStructure> RightItems;
 
-
-    }
     public class Parser
     {
 
@@ -44,18 +29,6 @@ namespace TraderParser
             TradeStructure = new List<DataStructure>();
         }
         
-        public string Page_Load()
-        {
-            string url = "https://csgolounge.com";
-            HtmlWeb web = new HtmlWeb();
-            HtmlDocument doc = web.Load(url);
-
-            //string test = doc.DocumentNode.SelectNodes("//*[@id=\"tradelist\"]/div[2]\")")[0].InnerText;
-
-            string result = doc.Text;
-            
-            return result;
-        }
 
         public void InitializeThreads()
         {
@@ -66,34 +39,27 @@ namespace TraderParser
         public void Start_Web_Thread()
         {
             //x items at a time
-            
+            string itemsList;
             for (int i = 0; i < 1; i++)
             {
                 wp = IP_Proxy.GetNextProxy();
                 Console.WriteLine("Thread " + wp.Address.ToString().Replace("http://", "") + " entered");
-                string itemsList;
-                //parse lounge => return item 1, item 2 name
                 itemsList = ParseLoungeNames(); // contains all trades, need to split them
-
-                //string[] splitList = itemsList.Split('Â');
-
                 MainWindow.main.Dispatcher.BeginInvoke(new Action
                     (() =>{
                         //foreach(string item in itemsList)
                         //MainWindow.main.Prices.Text = itemsList; 
                     }));
                     
-                //parse steam => return item 1 and item 2 price
-                //ParseSteamPrices(item1Name, item2Name, out item1Price, out item2Price);
             }
-
-            // change Proxy and reload
         }
 
         private List<string> ParseSingleTrade_Step1(string singleTrade)
         {
             string left = null, right = null;
-            List<string> singleTradeList = new List<string>();
+            List<string> singleTradeList;
+
+            singleTradeList = new List<string>();
             left = GetCustomXNode(singleTrade, "form", "left"); // list with contains all items from 1 trade on the left side [0, 1, 2,...]
             right = GetCustomXNode(singleTrade, "form", "right"); // contains all items from 1 trade on the right side3
            
@@ -101,16 +67,6 @@ namespace TraderParser
             singleTradeList.Add(right);
             return singleTradeList;
         }
-
-        private string GetName(string tradeThing)
-        {
-            return GetCustomSimpleNode(tradeThing, "a")[0].InnerText;
-        }
-        private string GetLink(string tradeThing)
-        {
-            return GetHREFContents(tradeThing);
-        }
-
         private float ComputePrice(string itemLink)
         {
             string replacedString = ReplaceSpecialChars(itemLink);
@@ -142,8 +98,11 @@ namespace TraderParser
         private void SendStructToUI(DataStructure structureToBeParsed)
         {
             List<ItemsStructure> items = new List<ItemsStructure>();
-            items = structureToBeParsed.LeftItems;
             TradeDetails detailsToSend = new TradeDetails();
+
+            items = structureToBeParsed.LeftItems;
+
+
             foreach (ItemsStructure singleItem in items)
             {
                 detailsToSend = new TradeDetails();
@@ -242,6 +201,8 @@ namespace TraderParser
             List<string> NamesList = new List<string>();
             List<string> LinksList = new List<string>();
 
+            List<string> singleTradeList;
+
             using (WebClient client = new WebClient())
             {
                 client.Proxy = wp;
@@ -261,7 +222,7 @@ namespace TraderParser
                     //retrieve username from customURL
                     foreach (string singleTrade in customUrl)
                     {
-                        List<string> singleTradeList = new List<string>();
+                        singleTradeList = new List<string>();
                         if (singleTrade.Contains("left") || singleTrade.Contains("right"))
                         {
                             NamesList.Add(GetName(singleTrade));
@@ -279,17 +240,11 @@ namespace TraderParser
                         //single one now contains 2 lists (one for left, one for right)
                         if(singleOne.Count < 2)
                         {
-                            Console.WriteLine("singlecount too small");
+                            Console.WriteLine("[IF Failed][Parser.cs][ParseLoungeNames]:: singleOne too small: " + singleOne.Count);
                         }
                         oneLeft = singleOne[0];
                         oneRight = singleOne[1];
                         List<HtmlNode> nodeListBuffer = GetCustomSimpleNode(oneLeft, "b");
-
-                        //int linkStartLeft = oneLeft.IndexOf("<a href=\"http:");
-                        //int linkEndLeft = oneLeft.IndexOf("target=");
-                        // string itemLinkLeft = oneLeft.Substring(linkStartLeft + 9, linkEndLeft - linkStartLeft - 11);
-
-
 
                         MatchCollection mc = Regex.Matches(oneLeft, "<a[^>]+href=\"(.*?)\"[^>]*>");
                         List<string> steamLinksLeft = GetLinksFromString(oneLeft);
@@ -316,7 +271,8 @@ namespace TraderParser
                             }
                             else
                             {
-                                Console.WriteLine("Iterator too big");
+                                //Console.WriteLine("Iterator too big");
+                                Console.WriteLine("[IF Failed][Parser.cs][ParseLoungeNames]:: Left Iterator too big: " + linksIterator + ", max is: " + steamLinksLeft.Count);
                             }
                         }
                         linksIterator = 0;
@@ -336,12 +292,12 @@ namespace TraderParser
                             }
                             else
                             {
-                                Console.WriteLine("Iterator too big");
+                                Console.WriteLine("[IF Failed][Parser.cs][ParseLoungeNames]:: Right Iterator too big: " + linksIterator + ", max is: " + steamLinksRight.Count);
                             }
                         }
                         if(iterator >= NamesList.Count)
                         {
-                            Console.WriteLine("iterator too big");
+                            Console.WriteLine("[IF Failed][Parser.cs][ParseLoungeNames]:: Names Iterator too big: " + linksIterator + ", max is: " + NamesList.Count);
                         }
                         DataStructure toBeAddedToStruct = new DataStructure
                         {
@@ -359,7 +315,7 @@ namespace TraderParser
                 }
                 catch(Exception e)
                 {
-                    Console.WriteLine("Exception in ParseLoungeNames: " + e.Message);
+                    Console.WriteLine("[EXCEPTION][Parser.cs][ParseLoungeNames]:: " + e.Message);
                 }
             }
             return listToBeOut;
@@ -389,11 +345,6 @@ namespace TraderParser
             HtmlDocument resultat = new HtmlDocument();
             string source = WebUtility.HtmlDecode(html);
             resultat.LoadHtml(source);
-
-            /*List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants() .Where(
-                    x => (
-                        x.Name == "div" &&
-                        x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("tradepoll"))).ToList();*/
             List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants().Where(
                                 x => (
                                     x.Name == xName &&
@@ -406,74 +357,39 @@ namespace TraderParser
         private List<HtmlNode> GetCustomSimpleNode(string html, string AB)
         {
             HtmlDocument resultat = new HtmlDocument();
+            List<HtmlNode> tofTitleList;
             string source = WebUtility.HtmlDecode(html);
             resultat.LoadHtml(source);
-
-            /*List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants() .Where(
-                    x => (
-                        x.Name == "div" &&
-                        x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("tradepoll"))).ToList();*/
-            List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants().Where(
+            tofTitleList = resultat.DocumentNode.Descendants().Where(
                                 x => (
                                     x.Name == AB)).ToList();
-
-            List<HtmlNode> xx = tofTitleList.ToList();
             return tofTitleList;
         }
 
         private string GetHREFContents(string html)
         {
             HtmlDocument resultat = new HtmlDocument();
+            List<HtmlNode> tofTitleList;
             string source = WebUtility.HtmlDecode(html);
             resultat.LoadHtml(source);
-
-            /*List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants() .Where(
-                    x => (
-                        x.Name == "div" &&
-                        x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("tradepoll"))).ToList();*/
-            List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants().Where(
+            tofTitleList = resultat.DocumentNode.Descendants().Where(
                 x => (
                         x.Name == "a")).ToList();
 
-            List<HtmlNode> xx = tofTitleList.ToList();
             return tofTitleList[0].OuterHtml.Substring(9,17);
         }
-
-        /*private string GetRightSide(string html)
-        {
-            HtmlDocument resultat = new HtmlDocument();
-            string source = WebUtility.HtmlDecode(html);
-            resultat.LoadHtml(source);
-
-            List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants().Where(
-                                x => (
-                                    x.Name == "form" &&
-                                    x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("right"))).ToList();
-            return tofTitleList[0].InnerHtml;
-        }*/
 
         private List<HtmlNode> ParseHTMLFromString(string html) // gets all trades
         {
             HtmlDocument resultat = new HtmlDocument();
             string source = WebUtility.HtmlDecode(html);
+            List<HtmlNode> tofTitleList;
             resultat.LoadHtml(source);
-
-            /*List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants() .Where(
-                    x => (
-                        x.Name == "div" &&
-                        x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("tradepoll"))).ToList();*/
-            List<HtmlNode> tofTitleList = resultat.DocumentNode.Descendants().Where(
+            tofTitleList = resultat.DocumentNode.Descendants().Where(
                                 x => (
                                     x.Name == "article" &&
                                     x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("standard") && x.Id =="tradelist")).ToList();
             return tofTitleList;
-        }
-
-        public void ParseSteamPrices(string item1Name, string item2Name, out float item1Price, out float item2Price)
-        {
-            item1Price = item2Price = 0f;
-            //get link from item1name and item2name
-
         }
 
         private string ReplaceSpecialChars(string input)
@@ -501,22 +417,25 @@ namespace TraderParser
         {
             float price = 0;
             string downloadedString;
+            JObject jObject;
             try
             {
                 downloadedString = DownloadAPI(link);
-                JObject jObject = JObject.Parse(downloadedString);
+                jObject = JObject.Parse(downloadedString);
                 try
                 {
                     price = (float)(decimal.Parse(jObject["median_price"].ToString().Replace("€", ""), System.Globalization.NumberStyles.Currency)) / 100;
                 }
-                catch
+                catch(Exception e)
                 {
+                    Console.WriteLine("[EXCEPTION][Parser.cs][GetPriceFromApi]:: " + e.Message + "\n, continuing to 2nd try");
                     try
                     {
                         price = (float)(decimal.Parse(jObject["lowest_price"].ToString().Replace("€", ""), System.Globalization.NumberStyles.Currency)) / 100;
                     }
-                    catch
+                    catch(Exception e2)
                     {
+                        Console.WriteLine("[EXCEPTION][Parser.cs][GetPriceFromApi]:: " + e2.Message);
                         price = -2;
                     }
                 }
@@ -535,6 +454,15 @@ namespace TraderParser
             client.Proxy = IP_Proxy.GetNextProxy();
             stringToReturn = client.DownloadString(link);
             return stringToReturn;
+        }
+
+        private string GetName(string tradeThing)
+        {
+            return GetCustomSimpleNode(tradeThing, "a")[0].InnerText;
+        }
+        private string GetLink(string tradeThing)
+        {
+            return GetHREFContents(tradeThing);
         }
     }
 }
