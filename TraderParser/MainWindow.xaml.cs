@@ -50,6 +50,7 @@ namespace TraderParser
 
             //Console.WriteLine(IP_Proxy.GetProxyIP());
             //Console.WriteLine(IP_Proxy.GetNextProxy());
+            Image_LoadingGIF.Visibility = Visibility.Visible;
             Web_Parser.InitializeThreads();
             //GetData("https://csgoempire.com");
         }

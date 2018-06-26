@@ -11,6 +11,7 @@ using System.Windows;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
+using System.Threading.Tasks;
 
 namespace TraderParser
 {
@@ -216,6 +217,7 @@ namespace TraderParser
                     }
                     //downloadString = client.DownloadString("https://csgolounge.com");
                     downloadString = client.DownloadString("https://csgolounge.com/result?ldef_index%5B%5D=4820&lquality%5B%5D=0&id%5B%5D=&");
+                    client.Proxy = new WebProxy();
                     singleRowTrade_Node = ParseHTMLFromString(downloadString);
                     customUrl = singleRowTrade_Node[0].InnerHtml.Split('Â'); // contains all trades
 
@@ -323,7 +325,6 @@ namespace TraderParser
 
         private void SeparatePriceComputer()
         {
-            float price = 0.2f;
             //foreach(DataStructure singleRow in TradeStructure)
             for(int i = 0; i < TradeStructure.Count; i++)
             {
@@ -428,20 +429,21 @@ namespace TraderParser
                 }
                 catch(Exception e)
                 {
-                    Console.WriteLine("[EXCEPTION][Parser.cs][GetPriceFromApi]:: " + e.Message + "\n, continuing to 2nd try");
+                    Console.WriteLine("[EXCEPTION 1][Parser.cs][GetPriceFromApi]:: " + e.Message + "\n, continuing to 2nd try");
                     try
                     {
                         price = (float)(decimal.Parse(jObject["lowest_price"].ToString().Replace("€", ""), System.Globalization.NumberStyles.Currency)) / 100;
                     }
                     catch(Exception e2)
                     {
-                        Console.WriteLine("[EXCEPTION][Parser.cs][GetPriceFromApi]:: " + e2.Message);
+                        Console.WriteLine("[EXCEPTION 2][Parser.cs][GetPriceFromApi]:: " + e2.Message);
                         price = -2;
                     }
                 }
             }
-            catch
+            catch(Exception e3)
             {
+                Console.WriteLine("[EXCEPTION 3][Parser.cs][GetPriceFromApi]:: " + e3.Message);
                 downloadedString = null;
             }
             return price;
@@ -449,10 +451,59 @@ namespace TraderParser
 
         private string DownloadAPI(string link)
         {
+            //need to set timers
+            /*WebClient client = new WebClient();
+            client.Proxy = new WebProxy();
+            string stringToReturn = null;
+            stringToReturn = client.DownloadString(link);
+            Thread.Sleep(1000);*/
+            
             string stringToReturn = null;
             WebClient client = new WebClient();
-            client.Proxy = IP_Proxy.GetNextProxy();
-            stringToReturn = client.DownloadString(link);
+            try
+            {
+                WebProxy prox = IP_Proxy.GetNextProxy();
+                Console.WriteLine("[Parser.cs] Trying with proxy " + prox.Address);
+                client.Proxy = prox;
+                Task task = Task.Run(() =>
+                {
+                    stringToReturn = client.DownloadString(link);
+                });
+                if(task.Wait(TimeSpan.FromSeconds(10)))
+                {
+                    Console.WriteLine("[Parser.cs] Succeded with proxy " + prox.Address);
+                }
+                else
+                {
+                    Console.WriteLine("[IF Failed][Parser.cs]:: Proxy " + prox.Address + " failed (1st try)(took too long)");
+                }
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("[EXCEPTION][Parser.cs][DownloadAPI]:: " + e.Message + ", retrying");
+                try
+                {
+                    Console.WriteLine("[Parser.cs] Removing proxy and retrying");
+                    client.Proxy = new WebProxy();
+                    Task task = Task.Run(() =>
+                    {
+                        stringToReturn = client.DownloadString(link);
+                    });
+                    if (task.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        Console.WriteLine("[Parser.cs] Succeded without proxy ");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[IF Failed][Parser.cs]:: Failed without proxy (took too long)");
+                    }
+
+                }
+                catch(Exception e2)
+                {
+                    Console.WriteLine("[EXCEPTION][Parser.cs][DownloadAPI]:: " + e2.Message);
+                }
+            }
             return stringToReturn;
         }
 

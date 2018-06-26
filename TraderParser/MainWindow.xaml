@@ -3,14 +3,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:gif="http://wpfanimatedgif.codeplex.com"
         xmlns:local="clr-namespace:TraderParser"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1080" Width="1920">
+        Title="MainWindow" Height="1080" Width="1920" ResizeMode="NoResize">
     <Grid>
-        <Button x:Name="ParseButton" Content="Initialize Parse" IsEnabled="False" Click="ParseButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top" Width="136" Margin="55,43,0,0"/>
+        <Grid.Background>
+            <ImageBrush ImageSource="Images/CSGO_BG.png"/>
+        </Grid.Background>
+        <Image x:Name="Image_LoadingGIF" gif:ImageBehavior.AnimatedSource="Images/loading-gif-transparent-10.gif" Margin="89,83,1707,914"/>
+        <Button x:Name="ParseButton" Content="Initialize Parse" IsEnabled="False" Click="ParseButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top" Width="232" Margin="37,43,0,0" Height="35"/>
         <TextBox Text="" VerticalScrollBarVisibility="Visible" Name="TextBox_Proxy_List" HorizontalAlignment="Left" Margin="37,140,0,0" VerticalAlignment="Top" Width="232" Height="824"/>
-        <Border BorderBrush="Black" BorderThickness="1" Margin="298,140,20,85">
-            <DataGrid x:Name="DataGrid_TradesList" AutoGenerateColumns="False" Height="824"  Margin="-1" VerticalAlignment="Top">
+        <Border BorderBrush="Black" BorderThickness="1" Margin="298,140,0,144" HorizontalAlignment="Left" Width="1494">
+            <DataGrid x:Name="DataGrid_TradesList" AutoGenerateColumns="False"  Margin="-1,-1,-2,-1">
                 <DataGrid.RowStyle>
                     <Style TargetType="{x:Type DataGridRow}">
                         <Style.Triggers>

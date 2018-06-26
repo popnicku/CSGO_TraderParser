@@ -63,7 +63,7 @@ namespace TraderParser
                     {
                         try
                         {
-                            downloadedString = webProxyClient.DownloadString("https://csgolounge.com/");
+                            downloadedString = webProxyClient.DownloadString("https://steamcommunity.com/market/priceoverview/?appid=730&currency=3&market_hash_name=%E2%98%85%20Flip%20Knife%20%7C%20Urban%20Masked%20(Field-Tested)");
                             //Console.WriteLine("Downloaded string: " +  downloadedString);
                         }
                         catch (Exception e)
@@ -71,7 +71,7 @@ namespace TraderParser
                             Console.WriteLine("Exception in task" + e);
                         }
                     });
-                    if (proxTask.Wait(TimeSpan.FromSeconds(60))) 
+                    if (proxTask.Wait(TimeSpan.FromSeconds(10))) 
                     {
                         if (downloadedString != null)
                         {
@@ -104,7 +104,11 @@ namespace TraderParser
             });
             Console.WriteLine("Proxies from list retrieved, total of " + proxyList.Count);
             MainWindow.main.UpdatePricesFromProxy("Total number of proxies:  " + proxyList.Count);
-            MainWindow.main.Dispatcher.BeginInvoke(new Action(() => { MainWindow.main.ParseButton.IsEnabled = true; }));
+            MainWindow.main.Dispatcher.BeginInvoke(new Action(() => 
+            {
+                MainWindow.main.ParseButton.IsEnabled = true;
+                MainWindow.main.Image_LoadingGIF.Visibility = System.Windows.Visibility.Hidden;
+            }));
         }
 
 
