@@ -8,13 +8,17 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MahApps.Metro.Controls;
+using System.Windows.Media.Animation;
+using System.Windows.Documents;
+using System.Diagnostics;
 
 namespace TraderParser
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : MetroWindow
     {
 
         public static MainWindow main;
@@ -47,17 +51,26 @@ namespace TraderParser
 
         private void ParseButton_Click(object sender, RoutedEventArgs e)
         {
-
-            //Console.WriteLine(IP_Proxy.GetProxyIP());
-            //Console.WriteLine(IP_Proxy.GetNextProxy());
-            Image_LoadingGIF.Visibility = Visibility.Visible;
-            Web_Parser.InitializeThreads();
+            if (CheckBox_CustomURL.IsChecked == true)
+            {
+                if (TextBox_CustomURL.Text.Contains("https://csgolounge.com"))
+                {
+                    Web_Parser.InitializeThreads(TextBox_CustomURL.Text);
+                }
+                else
+                {
+                    MessageBox.Show("Invalid URL");
+                }
+            }
+            else
+            {
+                Web_Parser.InitializeThreads(null);
+            }
             //GetData("https://csgoempire.com");
         }
 
         public void UpdateUI_Thread()
         {
-            
             for (; ; )
             {
                 if (TradersQueue.Count > 0)
@@ -75,13 +88,37 @@ namespace TraderParser
                                 ItemPrice = receivingStruct.ItemPrice,
                                 TradeLink = receivingStruct.TradeLink,
                             });
-                            
-                            this.DataGrid_TradesList.ItemsSource = TradersToBeDisplayed;
 
+                            this.DataGrid_TradesList.ItemsSource = TradersToBeDisplayed;
                         }));
                     }
                 }
             }
+        }
+
+        private void CheckBox_LoungeProxy_Checked(object sender, RoutedEventArgs e)
+        {
+            Web_Parser.proxyEnabled = (bool)CheckBox_LoungeProxy.IsChecked;
+        }
+
+        private void CheckBox_CustomURL_Click(object sender, RoutedEventArgs e)
+        {
+            if (CheckBox_CustomURL.IsChecked == true)
+                TextBox_CustomURL.Visibility = Visibility.Visible;
+            else
+                TextBox_CustomURL.Visibility = Visibility.Hidden;
+        }
+        private void Button_ClearTable_Click(object sender, RoutedEventArgs e)
+        {
+            TradersToBeDisplayed = new ObservableCollection<TradeDetails>();
+            DataGrid_TradesList.ItemsSource = null;
+            DataGrid_TradesList.Items.Refresh();
+            DataGrid_TradesList.Items.Clear();
+        }
+        private void DG_Hyperlink_Click(object sender, RoutedEventArgs e)
+        {
+            Hyperlink link = (Hyperlink)e.OriginalSource;
+            Process.Start(link.NavigateUri.AbsoluteUri);
         }
     }
 }

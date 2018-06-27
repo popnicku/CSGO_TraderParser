@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
+using System.Windows;
 
 namespace TraderParser
 {
@@ -25,13 +26,21 @@ namespace TraderParser
         {
             Console.WriteLine("Initializing proxy thread...");
             MainWindow.main.UpdatePricesFromProxy("Getting proxies, please wait\n");
+            SearchForProxy();
+        }
+
+        public void SearchForProxy()
+        {
             Thread getProxyThread = new Thread(GetProxyListFromFile);
             getProxyThread.Start();
-            
         }
+
+
         Stopwatch sw = new Stopwatch();
         private void GetProxyListFromFile()
         {
+            int totalProxiesInFile = 0;
+            int processedProxiesFromFile = 0;
             Console.WriteLine("Geting proxies from list");
             StreamReader file = new StreamReader("../../proxy_list.txt");
             string line;
@@ -41,7 +50,13 @@ namespace TraderParser
             while ((line = file.ReadLine()) != null)
 			{
                 proxyLines.Add(line);
+                totalProxiesInFile++;
             }
+            MainWindow.main.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                //MainWindow.main.ProgressBar_ProxyLoading.
+                MainWindow.main.ProgressBar_ProxyLoading.Maximum = totalProxiesInFile;
+            }));
             file.Dispose(); // hmm?
 			Parallel.For(0, proxyLines.Count, index =>
             {
@@ -77,8 +92,15 @@ namespace TraderParser
                         {
                             Console.WriteLine("Proxy " + currentProxy + " ok");
                             MainWindow.main.UpdatePricesFromProxy(currentProxy);
+
+                            MainWindow.main.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                MainWindow.main.ProgressBar_ProxyLoading.Value = processedProxiesFromFile;
+                            }));
+
                             numberOfWorkingProxies++;
                             proxyList.Add(new WebProxy(currentProxy));
+                            processedProxiesFromFile++;
                             if (numberOfWorkingProxies >= 5)
 							{
                                 //MainWindow.main.Web_Parser.InitializeThreads();
@@ -94,7 +116,6 @@ namespace TraderParser
                     {
                         Console.WriteLine("[IF Failed][Proxy.cs][GetProxyListFromFile]:: Page took too long to load");
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -107,7 +128,8 @@ namespace TraderParser
             MainWindow.main.Dispatcher.BeginInvoke(new Action(() => 
             {
                 MainWindow.main.ParseButton.IsEnabled = true;
-                MainWindow.main.Image_LoadingGIF.Visibility = System.Windows.Visibility.Hidden;
+                MainWindow.main.ProgressBar_ProxyLoading.Value = processedProxiesFromFile;
+                MainWindow.main.ProgressBar_ProxyLoading.Visibility = System.Windows.Visibility.Hidden;
             }));
         }
 

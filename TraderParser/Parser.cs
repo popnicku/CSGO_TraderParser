@@ -20,19 +20,33 @@ namespace TraderParser
     {
 
         List<DataStructure> TradeStructure;
-        private Proxy IP_Proxy;
+        JObject NameAndPrice;
+        public Proxy IP_Proxy;
         private WebProxy wp;
+        public bool proxyEnabled = false;
+        private string Custom_URL;
 
 
         public Parser()
         {
             IP_Proxy = new Proxy();
+            DownloadSteamAPI();
             TradeStructure = new List<DataStructure>();
         }
-        
 
-        public void InitializeThreads()
+        private void DownloadSteamAPI()
         {
+            WebClient client = new WebClient();
+            string download = client.DownloadString("https://api.steamapis.com/market/items/730?api_key=cwPJTL15sWDgRywQQaWYKMKr6O4&format=compact&compact_value=latest");
+            NameAndPrice = JObject.Parse(download);
+        }
+
+        public void InitializeThreads(string customURL)
+        {
+            if (customURL != null)
+                Custom_URL = customURL;
+            else
+                Custom_URL = "https://csgolounge.com/result?ldef_index%5B%5D=2703&lquality%5B%5D=0&id%5B%5D=&";
             Thread th = new Thread(Start_Web_Thread);
             th.Start();
         }
@@ -43,8 +57,11 @@ namespace TraderParser
             string itemsList;
             for (int i = 0; i < 1; i++)
             {
-                wp = IP_Proxy.GetNextProxy();
-                Console.WriteLine("Thread " + wp.Address.ToString().Replace("http://", "") + " entered");
+                if (wp != null && proxyEnabled)
+                {
+                    wp = IP_Proxy.GetNextProxy();
+                    Console.WriteLine("Thread " + wp.Address.ToString().Replace("http://", "") + " entered");
+                }
                 itemsList = ParseLoungeNames(); // contains all trades, need to split them
                 MainWindow.main.Dispatcher.BeginInvoke(new Action
                     (() =>{
@@ -68,11 +85,11 @@ namespace TraderParser
             singleTradeList.Add(right);
             return singleTradeList;
         }
-        private float ComputePrice(string itemLink)
+        private float ComputePrice(string itemName)
         {
-            string replacedString = ReplaceSpecialChars(itemLink);
-            replacedString = ReplaceWithAPI(replacedString);
-            return GetPriceFromAPI(replacedString);
+            //string replacedString = ReplaceSpecialChars(itemName);
+            //replacedString = ReplaceWithAPI(replacedString);
+            return GetPriceFromAPI(itemName);
         }
 
         private TradeDetails SingleRowToSend(ItemsStructure row, DataStructure structureToBeParsed)
@@ -82,7 +99,7 @@ namespace TraderParser
             detailsToSend.ItemLink = row.ItemLink;
             detailsToSend.ItemName = row.ItemName;
             detailsToSend.ItemPrice = row.ItemPrice.ToString();
-            detailsToSend.TradeLink = structureToBeParsed.Tradelink;
+            detailsToSend.TradeLink = "https://csgolounge.com/" + structureToBeParsed.Tradelink;
             return detailsToSend;
         }
         private TradeDetails SingleRowToSend(string container)
@@ -133,7 +150,7 @@ namespace TraderParser
 
         private ItemsStructure ConstructSmallStructure(string itemLink, HtmlNode nodeToDo)
         {
-            bool proxyChanged = false;
+            //bool proxyChanged = false;
             float price = -1;
             /*proxyNeeded:
             if (!proxyChanged)
@@ -206,18 +223,21 @@ namespace TraderParser
 
             using (WebClient client = new WebClient())
             {
-                client.Proxy = wp;
-                try
+                if (proxyEnabled)
                 {
+                    client.Proxy = wp;
                     Console.WriteLine("Changing proxy...");
                     Console.WriteLine("Proxy changed to " + wp.Address);
+                }
+                try
+                {
                     while (client.IsBusy)
                     {
                         Thread.Sleep(20);
                     }
                     //downloadString = client.DownloadString("https://csgolounge.com");
-                    downloadString = client.DownloadString("https://csgolounge.com/result?ldef_index%5B%5D=4820&lquality%5B%5D=0&id%5B%5D=&");
-                    client.Proxy = new WebProxy();
+                    downloadString = client.DownloadString(Custom_URL);
+                    //client.Proxy = new WebProxy(); // reset proxy
                     singleRowTrade_Node = ParseHTMLFromString(downloadString);
                     customUrl = singleRowTrade_Node[0].InnerHtml.Split('Â'); // contains all trades
 
@@ -307,7 +327,6 @@ namespace TraderParser
                             Tradelink = LinksList[iterator],
                             LeftItems = WholeLeftStructure,
                             RightItems = WholeRightStructure
-
                         };
                         TradeStructure.Add(toBeAddedToStruct);
                         //SendStructToUI(toBeAddedToStruct);
@@ -320,6 +339,7 @@ namespace TraderParser
                     Console.WriteLine("[EXCEPTION][Parser.cs][ParseLoungeNames]:: " + e.Message);
                 }
             }
+            TradeStructure = new List<DataStructure>();
             return listToBeOut;
         }
 
@@ -331,11 +351,11 @@ namespace TraderParser
                 //foreach(ItemsStructure item in singleRow.LeftItems)
                 for(int j = 0; j < TradeStructure[i].LeftItems.Count; j++)
                 {
-                    TradeStructure[i].LeftItems[j].ItemPrice = ComputePrice(TradeStructure[i].LeftItems[j].ItemLink);
+                    TradeStructure[i].LeftItems[j].ItemPrice = ComputePrice(TradeStructure[i].LeftItems[j].ItemName);
                 }
                 for (int j = 0; j < TradeStructure[i].RightItems.Count; j++)
                 {
-                    TradeStructure[i].RightItems[j].ItemPrice = ComputePrice(TradeStructure[i].RightItems[j].ItemLink);
+                    TradeStructure[i].RightItems[j].ItemPrice = ComputePrice(TradeStructure[i].RightItems[j].ItemName);
                 }
                 SendStructToUI(TradeStructure[i]);
             }
@@ -414,11 +434,11 @@ namespace TraderParser
             //Console.WriteLine(output);
             return output;
         }
-        private float GetPriceFromAPI(string link)
+        private float GetPriceFromAPI(string name)
         {
             float price = 0;
-            string downloadedString;
-            JObject jObject;
+            //string downloadedString;
+            /*JObject jObject;
             try
             {
                 downloadedString = DownloadAPI(link);
@@ -445,6 +465,14 @@ namespace TraderParser
             {
                 Console.WriteLine("[EXCEPTION 3][Parser.cs][GetPriceFromApi]:: " + e3.Message);
                 downloadedString = null;
+            }*/
+            try
+            {
+                price = (float)(decimal.Parse(NameAndPrice[name].ToString()));
+            }
+            catch
+            {
+                price = -4;
             }
             return price;
         }
