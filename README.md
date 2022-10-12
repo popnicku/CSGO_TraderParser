@@ -11,9 +11,16 @@ The parser will not work anymore and has been discontinued. The website has chan
 ![image](https://user-images.githubusercontent.com/9354674/195376428-9d66ad58-5c8e-4556-b84b-fc09eb720f56.png)
 
 Yellow = Separates the left side for the right side of each trade.
+
 Red = Separates each trade.
+
+
 Favorable trades will appear in green.
+
 Trade link = Lounge trade link.
+
 Item Name
+
 Item Price = Price parsed from steam community.
+
 Item Link = Link for each item on the steam community market.
